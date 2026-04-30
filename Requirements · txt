@@ -1,0 +1,5 @@
+# ── Core (no install needed — stdlib) ────────────────────────────────────────
+# os, shutil, subprocess, json, datetime — all built-in
+
+# ── Environment variables ─────────────────────────────────────────────────────
+python-dotenv>=1.0.0
