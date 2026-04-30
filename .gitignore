@@ -1,0 +1,22 @@
+# Environment & secrets
+.env
+credentials.json
+token.json
+
+# Agent runtime data (logs, undo stack)
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# macOS
+.DS_Store
