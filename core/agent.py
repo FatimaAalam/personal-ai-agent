@@ -3,9 +3,10 @@ core/agent.py
 The main command router. Reads user input, dispatches to the right command.
 Adding a new command = one elif block + one import. Nothing else changes.
 """
-from commands.files   import (find_file, find_duplicates, list_folder,
-                               move_images, move_pdfs, move_screenshots,
-                               sort_downloads, rename_file, undo_last)
+from commands.files   import move_images, move_pdfs, move_screenshots, sort_downloads, rename_file
+from commands.finder  import find_file, find_duplicates
+from commands.history import undo_last, list_folder
+from commands.fileops import create_file, delete_file
 from commands.folder  import create_folder, create_project, delete_empty_folders
 from commands.system  import open_app, open_vscode
 from commands.watch_mode import start_watch, stop_watch, is_active
@@ -38,6 +39,12 @@ HELP_TEXT = """
 ║  SYSTEM                                                  ║
 ║    open vscode                                           ║
 ║    open app <name>           Open any macOS app          ║
+╠══════════════════════════════════════════════════════════╣
+║  FILE MANAGEMENT                                           ║
+║    create file <name>             Create on Desktop         ║
+║    create file <n> in folder <f>  Create in sub-folder      ║
+║    delete file <name>             Delete from Desktop       ║
+║    delete file <n> in folder <f>  Delete from sub-folder    ║
 ╠══════════════════════════════════════════════════════════╣
 ║  WATCH MODE                                              ║
 ║    watch on                  Auto-sort Downloads on drop ║
@@ -140,6 +147,35 @@ def run() -> None:
         # ── Delete Empty Folders ──────────────────────────────────────────────
         elif "delete empty folders" in command:
             delete_empty_folders()
+
+        # ── Delete File ──────────────────────────────────────────────────────
+        # e.g. "delete file notes.txt"
+        #      "delete file notes.txt in folder study"
+        elif "delete" in command and "file" in command:
+            core = command.replace("delete", "").replace("file", "").strip()
+            if " in folder " in core:
+                parts    = core.split(" in folder ", 1)
+                filename = parts[0].strip()
+                folder   = parts[1].strip()
+            else:
+                filename = core
+                folder   = None
+            delete_file(filename, folder)
+
+        # ── Create File ──────────────────────────────────────────────────────
+        # e.g. "create file notes.txt"
+        #      "create notes file in folder study"
+        #      "create file notes.txt in folder study"
+        elif "create" in command and "file" in command:
+            core = command.replace("create", "").replace("file", "").strip()
+            if " in folder " in core:
+                parts    = core.split(" in folder ", 1)
+                filename = parts[0].strip()
+                folder   = parts[1].strip()
+            else:
+                filename = core
+                folder   = None
+            create_file(filename, folder)
 
         # ── Create Folder ─────────────────────────────────────────────────────
         elif "create folder named" in command:
