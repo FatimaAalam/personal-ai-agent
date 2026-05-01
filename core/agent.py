@@ -1,15 +1,17 @@
 """
 core/agent.py
 The main command router. Reads user input, dispatches to the right command.
-
 Adding a new command = one elif block + one import. Nothing else changes.
 """
-
-from commands.files   import (find_file, list_folder, move_images,
-                               move_pdfs, move_screenshots, sort_downloads,
-                               rename_file, undo_last)
-from commands.folder import create_folder, create_project, delete_empty_folders
+from commands.files   import (find_file, find_duplicates, list_folder,
+                               move_images, move_pdfs, move_screenshots,
+                               sort_downloads, rename_file, undo_last)
+from commands.folder  import create_folder, create_project, delete_empty_folders
 from commands.system  import open_app, open_vscode
+from commands.watch_mode import start_watch, stop_watch, is_active
+from core.logger      import log
+from pathlib          import Path
+import config
 
 HELP_TEXT = """
 ╔══════════════════════════════════════════════════════════╗
@@ -22,6 +24,7 @@ HELP_TEXT = """
 ║    sort downloads            Auto-sort all Downloads     ║
 ║    rename file <old> to <new>                            ║
 ║    find file <filename>      Search Desktop + Downloads  ║
+║    find duplicates           Find identical files        ║
 ║    list desktop              List everything on Desktop  ║
 ║    list downloads            List everything in Downloads ║
 ║    list <folder name>        List a Desktop sub-folder   ║
@@ -36,6 +39,11 @@ HELP_TEXT = """
 ║    open vscode                                           ║
 ║    open app <name>           Open any macOS app          ║
 ╠══════════════════════════════════════════════════════════╣
+║  WATCH MODE                                              ║
+║    watch on                  Auto-sort Downloads on drop ║
+║    watch off                 Stop background watcher     ║
+║    watch status              Show watcher state          ║
+╠══════════════════════════════════════════════════════════╣
 ║  OTHER                                                   ║
 ║    --preview <command>       Dry-run without executing   ║
 ║    help                      Show this menu              ║
@@ -43,14 +51,14 @@ HELP_TEXT = """
 ╚══════════════════════════════════════════════════════════╝
 """
 
-
 def run() -> None:
     """Start the agent input loop."""
     print("🤖 Personal AI Agent started. Type 'help' for commands, 'goodbye' to exit.\n")
 
     while True:
         try:
-            raw = input(">> ").strip()
+            watch_badge = " [👁 watching]" if is_active() else ""
+            raw = input(f">>{watch_badge} ").strip()
         except (KeyboardInterrupt, EOFError):
             print("\nGoodbye!")
             break
@@ -73,6 +81,19 @@ def run() -> None:
         elif command == "goodbye":
             print("👋 Goodbye! Shutting down...")
             break
+
+        # ── Watch mode ────────────────────────────────────────────────────────
+        elif command in ("watch on", "watch start", "start watch"):
+            print(start_watch(sort_downloads, log, Path(config.DOWNLOADS)))
+
+        elif command in ("watch off", "watch stop", "stop watch"):
+            print(stop_watch(log))
+
+        elif command in ("watch status", "watch"):
+            if is_active():
+                print(f"👁  Watch mode is ACTIVE — monitoring {config.DOWNLOADS}")
+            else:
+                print("💤  Watch mode is OFF.  Type  watch on  to start.")
 
         # ── List folder ───────────────────────────────────────────────────────
         elif command.startswith("list "):
@@ -111,6 +132,10 @@ def run() -> None:
         elif command.startswith("find file"):
             filename = raw[9:].strip()
             find_file(filename)
+
+        # ── Find Duplicates ───────────────────────────────────────────────────
+        elif "find duplicates" in command or "find duplicate" in command:
+            find_duplicates()
 
         # ── Delete Empty Folders ──────────────────────────────────────────────
         elif "delete empty folders" in command:
